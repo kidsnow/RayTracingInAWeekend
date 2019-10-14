@@ -1,54 +1,73 @@
 ﻿#include <iostream>
 #include <fstream>
 #include "glm/glm.hpp"
-#include "float.h"
 #include "sphere.h"
-#include "hitable_list.h"
+#include "hitablelist.h"
+#include "camera.h"
+
+// For random numbers
+#include <stdlib.h>
+#include <time.h>
+
+float random()
+{
+	return float(rand()) / float(RAND_MAX + 1);
+}
+
+glm::vec3 RandomInUnitSphere()
+{
+	glm::vec3 p;
+	do {
+		p = 2.0f * glm::vec3(random(), random(), random()) - glm::vec3(1.0, 1.0, 1.0);
+	} while (glm::length(p) >= 1.0);
+	return p;
+}
 
 glm::vec3 Color(const Ray& r, Hitable *world)
 {
 	HitRecord rec;
 	if (world->Hit(r, 0.0, FLT_MAX, rec))
 	{
-		return 0.5f * glm::vec3(rec.normal.x + 1, rec.normal.y + 1, rec.normal.z + 1);
+		glm::vec3 target = rec.p + rec.normal + RandomInUnitSphere();
+		return 0.5f * Color(Ray(rec.p, target - rec.p), world);
 	}
 	else
 	{
-		glm::vec3 unitDirection = normalize(r.direction());
-		float t = 0.5*(unitDirection.y + 1.0f);
+		glm::vec3 unitDirection = glm::normalize(r.direction());
+		float t = 0.5f*(unitDirection.y + 1.0f);
 		return (1.0f - t)*glm::vec3(1.0f, 1.0f, 1.0f) + t * glm::vec3(0.5f, 0.7f, 1.0f);
 	}
 }
 
 int main()
 {
+	srand(time(NULL));
 	std::ofstream outImage("raytraced.ppm");
-
 	int nx = 200;
 	int ny = 100;
+	int ns = 100;
 	outImage << "P3\n" << nx << " " << ny << "\n255\n";
-	glm::vec3 lowerLeftCorner(-2.0f, -1.0f, -1.0f);
-	glm::vec3 horizontal(4.0f, 0.0f, 0.0f);
-	glm::vec3 vertical(0.0f, 2.0f, 0.0f);
-	glm::vec3 origin(0.0f, 0.0f, 0.0f);
 	Hitable *list[2];
 	list[0] = new Sphere(glm::vec3(0.0f, 0.0f, -1.0f), 0.5f);
 	list[1] = new Sphere(glm::vec3(0.0f, -100.5f, -1.0f), 100.0f);
 	Hitable *world = new HitableList(list, 2);
+	Camera cam;
 	for (int j = ny - 1; j >= 0; j--)
 	{
 		for (int i = 0; i < nx; i++)
 		{
-			float u = float(i) / float(nx);
-			float v = float(j) / float(ny);
-			Ray r(origin, lowerLeftCorner + u * horizontal + v * vertical);
-			
-			glm::vec3 p = r.PointAtParameter(2.0);
-			glm::vec3 col = Color(r, world);
+			glm::vec3 col(0.0, 0.0, 0.0);
+			for (int s = 0; s < ns; s++)
+			{
+				float u = float(i + random()) / float(nx);
+				float v = float(j + random()) / float(ny);
+				Ray r = cam.GetRay(u, v);
+				col += Color(r, world);
+			}
+			col /= float(ns);
 			int ir = int(255.99f*col.r);
 			int ig = int(255.99f*col.g);
 			int ib = int(255.99f*col.b);
-
 			outImage << ir << " " << ig << " " << ib << "\n";
 		}
 	}

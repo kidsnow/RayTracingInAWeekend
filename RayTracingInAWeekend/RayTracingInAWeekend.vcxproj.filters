@@ -29,7 +29,10 @@
     <ClInclude Include="sphere.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="hitable_list.h">
+    <ClInclude Include="camera.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="hitablelist.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
