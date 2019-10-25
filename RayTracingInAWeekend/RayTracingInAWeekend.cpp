@@ -4,6 +4,7 @@
 #include "sphere.h"
 #include "hitablelist.h"
 #include "camera.h"
+#include "material.h"
 
 // For random numbers
 #include <stdlib.h>
@@ -23,13 +24,21 @@ glm::vec3 RandomInUnitSphere()
 	return p;
 }
 
-glm::vec3 Color(const Ray& r, Hitable *world)
+glm::vec3 Color(const Ray& r, Hitable *world, int depth)
 {
 	HitRecord rec;
 	if (world->Hit(r, 0.001, FLT_MAX, rec))
 	{
-		glm::vec3 target = rec.p + rec.normal + RandomInUnitSphere();
-		return 0.5f * Color(Ray(rec.p, target - rec.p), world);
+		Ray scattered;
+		glm::vec3 attenuation;
+		if (depth < 50 && rec.matPtr->Scatter(r, rec, attenuation, scattered))
+		{
+			return attenuation * Color(scattered, world, depth + 1);
+		}
+		else
+		{
+			return glm::vec3(0, 0, 0);
+		}
 	}
 	else
 	{
@@ -47,11 +56,15 @@ int main()
 	int ny = 100;
 	int ns = 100;
 	outImage << "P3\n" << nx << " " << ny << "\n255\n";
-	Hitable *list[2];
-	list[0] = new Sphere(glm::vec3(0.0f, 0.0f, -1.0f), 0.5f);
-	list[1] = new Sphere(glm::vec3(0.0f, -100.5f, -1.0f), 100.0f);
-	Hitable *world = new HitableList(list, 2);
+
+	Hitable *list[4];
+	list[0] = new Sphere(glm::vec3(0.0f, 0.0f, -1.0f), 0.5f, new Lambertian(glm::vec3(0.8, 0.3, 0.3)));
+	list[1] = new Sphere(glm::vec3(0.0f, -100.5f, -1.0f), 100.0f, new Lambertian(glm::vec3(0.8, 0.8, 0.0)));
+	list[2] = new Sphere(glm::vec3(1.0f, 0.0f, -1.0f), 0.5f, new Metal(glm::vec3(0.8, 0.6, 0.2), 1.0f));
+	list[3] = new Sphere(glm::vec3(-1.0f, 0.0f, -1.0f), 0.5f, new Metal(glm::vec3(0.8, 0.8, 0.8), 0.0f));
+	Hitable *world = new HitableList(list, 4);
 	Camera cam;
+
 	for (int j = ny - 1; j >= 0; j--)
 	{
 		for (int i = 0; i < nx; i++)
@@ -62,7 +75,7 @@ int main()
 				float u = float(i + random()) / float(nx);
 				float v = float(j + random()) / float(ny);
 				Ray r = cam.GetRay(u, v);
-				col += Color(r, world);
+				col += Color(r, world, 0);
 			}
 			col /= float(ns);
 			col = glm::vec3(sqrt(col[0]), sqrt(col[1]), sqrt(col[2]));

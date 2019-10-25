@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ray.h"
 #include "hitable.h"
 
 class HitableList : public Hitable

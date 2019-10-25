@@ -1,18 +1,22 @@
 #pragma once
 
+#include "ray.h"
 #include "hitable.h"
+#include "glm/glm.hpp"
+#include "material.h"
 
 class Sphere : public Hitable
 {
 public:
 	Sphere() {}
-	Sphere(glm::vec3 cen, float r) : center(cen), radius(r) {};
+	Sphere(glm::vec3 cen, float r, Material* mPtr) : center(cen), radius(r), matPtr(mPtr) {};
 	virtual bool Hit(const Ray &r, float tMin,
 		float tMax, HitRecord& rec) const;
 
 public:
 	glm::vec3 center;
 	float radius;
+	Material* matPtr;
 };
 
 bool Sphere::Hit(const Ray& r, float tMin, float tMax, HitRecord& rec) const
@@ -31,13 +35,16 @@ bool Sphere::Hit(const Ray& r, float tMin, float tMax, HitRecord& rec) const
 			rec.t = temp;
 			rec.p = r.PointAtParameter(rec.t);
 			rec.normal = (rec.p - center) / radius;
+			rec.matPtr = matPtr;
 			return true;
 		}
 		temp = (-b + sqrt(b*b - a * c)) / a;
-		if (temp < tMax && temp > tMin) {
+		if (temp < tMax && temp > tMin)
+		{
 			rec.t = temp;
 			rec.p = r.PointAtParameter(rec.t);
 			rec.normal = (rec.p - center) / radius;
+			rec.matPtr = matPtr;
 			return true;
 		}
 	}
